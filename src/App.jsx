@@ -1,19 +1,20 @@
 import { Loader } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
 import { Leva } from "leva";
-import { Experience } from "./components/Experience";
-import { UI } from "./components/UI";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { GroupDiscussion } from "./pages/GroupDiscussion";
+import { SystemDesignInterview } from "./pages/SystemDesignInterview";
 
 function App() {
   return (
-    <>
+    <BrowserRouter>
       <Loader />
       <Leva hidden />
-      <UI />
-      <Canvas shadows camera={{ position: [0, 0, 1], fov: 30 }}>
-        <Experience />
-      </Canvas>
-    </>
+      <Routes>
+        <Route path="/" element={<Navigate to="/group-discussion" />} />
+        <Route path="/group-discussion" element={<GroupDiscussion />} />
+        <Route path="/interview" element={<SystemDesignInterview />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

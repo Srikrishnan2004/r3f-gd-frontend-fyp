@@ -60,7 +60,18 @@ export const Experience = () => {
       <Suspense>
         <Dots position-y={1.75} position-x={-0.02} />
       </Suspense>
-      <Avatar />
+      {Array.from({ length: 4 }).map((_, index) => {
+        const angle = (index / 4) * Math.PI * 2;
+        const x = Math.sin(angle) * 2;
+        const z = Math.cos(angle) * 2;
+        return (
+          <Avatar
+            key={index}
+            position={[x, 0, z]}
+            rotation={[0, angle + Math.PI, 0]}
+          />
+        );
+      })}
       <ContactShadows opacity={0.7} />
     </>
   );
