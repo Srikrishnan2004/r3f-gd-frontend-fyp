@@ -94,15 +94,15 @@ const facialExpressions = {
 };
 
 const corresponding = {
-  A: "viseme_PP",
-  B: "viseme_kk",
-  C: "viseme_I",
-  D: "viseme_AA",
-  E: "viseme_O",
-  F: "viseme_U",
-  G: "viseme_FF",
-  H: "viseme_TH",
-  X: "viseme_PP",
+  A: "mouthPress",
+  B: "mouthSmile",
+  C: "mouthFunnel",
+  D: "jawOpen",
+  E: "mouthFunnel",
+  F: "mouthPucker",
+  G: "mouthPress",
+  H: "tongueOut",
+  X: "mouthClose",
 };
 
 let setupMode = false;
@@ -125,7 +125,7 @@ export function Avatar(props) {
     setAnimation(message.animation);
     setFacialExpression(message.facialExpression);
     setLipsync(message.lipsync);
-    const audio = new Audio("data:audio/mp3;base64," + message.audio);
+    const audio = new Audio("data:audio/wav;base64," + message.audio);
     audio.play();
     setAudio(audio);
     audio.onended = onMessagePlayed;
@@ -135,19 +135,47 @@ export function Avatar(props) {
 
   const group = useRef();
   const { actions, mixer } = useAnimations(animations, group);
+
+  // Proactive Fix: Clean Mixamo prefixes if present
+  useEffect(() => {
+      animations.forEach(clip => {
+          clip.tracks.forEach(track => {
+              // Remove mixamorig prefix (common issue)
+              if (track.name.includes("mixamorig")) {
+                  track.name = track.name.replace("mixamorig", "");
+              }
+          });
+      });
+  }, [animations]);
+
   const [animation, setAnimation] = useState(
-    animations.find((a) => a.name === "Idle") ? "Idle" : animations[0].name // Check if Idle animation exists otherwise use first animation
+    animations.find((a) => a.name === "Idle") ? "Idle" : animations[0].name 
   );
   useEffect(() => {
-    actions[animation]
-      .reset()
-      .fadeIn(mixer.stats.actions.inUse === 0 ? 0 : 0.5)
-      .play();
-    return () => actions[animation].fadeOut(0.5);
-  }, [animation]);
+    // Check if the requested animation exists
+    const action = actions[animation];
+    
+    if (action) {
+        action
+            .reset()
+            .fadeIn(mixer.stats.actions.inUse === 0 ? 0 : 0.5)
+            .play();
+        return () => action.fadeOut(0.5);
+    } else {
+        // Fallback to Idle if the requested animation is missing
+        console.warn(`Animation "${animation}" not found, falling back to Idle`);
+        if (animation !== "Idle" && actions["Idle"]) {
+             actions["Idle"]
+                .reset()
+                .fadeIn(mixer.stats.actions.inUse === 0 ? 0 : 0.5)
+                .play();
+             return () => actions["Idle"].fadeOut(0.5);
+        }
+    }
+  }, [animation, actions, mixer]);
 
   const lerpMorphTarget = (target, value, speed = 0.1) => {
-    scene.traverse((child) => {
+    clone.traverse((child) => {
       if (child.isSkinnedMesh && child.morphTargetDictionary) {
         const index = child.morphTargetDictionary[target];
         if (
@@ -202,7 +230,7 @@ export function Avatar(props) {
     }
 
     const appliedMorphTargets = [];
-    if (message && lipsync) {
+    if (message && lipsync && audio) {
       const currentAudioTime = audio.currentTime;
       for (let i = 0; i < lipsync.mouthCues.length; i++) {
         const mouthCue = lipsync.mouthCues[i];
@@ -212,6 +240,7 @@ export function Avatar(props) {
         ) {
           appliedMorphTargets.push(corresponding[mouthCue.value]);
           lerpMorphTarget(corresponding[mouthCue.value], 1, 0.2);
+          console.log(`👄 Cue: ${mouthCue.value} | Time: ${currentAudioTime.toFixed(2)} | Target: ${corresponding[mouthCue.value]}`);
           break;
         }
       }
